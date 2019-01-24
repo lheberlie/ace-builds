@@ -76,10 +76,15 @@ define("ace/ext/token_tooltip_esri",["require","exports","module","ace/lib/dom",
       if (token.stateTransitions)
         tokenText += '\n  ' + token.stateTransitions.join('\n  ');
 
+      var tooltipMessage = " see item";
+      if (/esri-mid-href/i.test(token.type)) {
+        tooltipMessage = " see API Reference";
+      }
+
       if (/mac/i.test(navigator.userAgent)) {
-        tokenText = 'Cmd + click to follow link';
+        tokenText = 'Cmd + click to' + tooltipMessage;
       } else {
-        tokenText = 'Ctrl + click to follow link';
+        tokenText = 'Ctrl + click to' + tooltipMessage;
       }
 
       if (this.tokenText != tokenText) {
