@@ -127,7 +127,8 @@ background: #e8e8e8;\
 .ace-esri .ace_storage.ace_type {\
 color: #d73a49;\
 }\
-.ace-esri .ace_esri-portal-item-id-href {\
+.ace-esri .ace_esri-portal-item-id-href,\
+.ace-esri .ace_esri-url-href {\
 color: #0366d6;\
 text-decoration: underline;\
 }\

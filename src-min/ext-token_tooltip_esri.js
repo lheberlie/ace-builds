@@ -79,6 +79,8 @@ define("ace/ext/token_tooltip_esri",["require","exports","module","ace/lib/dom",
       var tooltipMessage = " see item";
       if (/esri-mid-href/i.test(token.type)) {
         tooltipMessage = " see API Reference";
+      } else if (/esri-url-href/i.test(token.type)) {
+        tooltipMessage = " open link"; 
       }
 
       if (/mac/i.test(navigator.userAgent)) {
