@@ -1690,14 +1690,14 @@ ace.define("ace/mode/html_esri_highlight_rules",["require","exports","module","a
       'js-qqesri.url': [
         {
           token: 'esri-url-href',
-          regex: /https?:\/\/[-=_.?&\w\d/]+/,
+          regex: /https?:\/\/[-=:+_.?&~{}@%#()\w\d/]+/,
           next: 'js-qqstring',
         }
       ],
       'js-qesri.url': [
         {
           token: 'esri-url-href',
-          regex: /https?:\/\/[-=_.?&\w\d/]+/,
+          regex: /https?:\/\/[-=:+_.?&~{}@%#()\w\d/]+/,
           next: 'js-qstring'
         }
       ]
