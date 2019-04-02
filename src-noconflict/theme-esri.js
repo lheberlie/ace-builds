@@ -3,8 +3,7 @@ ace.define("ace/theme/esri",["require","exports","module","ace/lib/dom"], functi
   exports.cssClass = 'ace-esri';
   exports.cssText = "\
 .ace_editor {\
-font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier,\
-monospace !default;\
+font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !default;\
 font-size: 12px;\
 }\
 .ace-esri .ace_gutter {\

@@ -1623,32 +1623,32 @@ ace.define("ace/mode/html_esri_highlight_rules",["require","exports","module","a
       {
         token: 'string',
         regex: /"(?=[0-9a-fA-F]{32}")/, // recognizes an id starting w/ double quote like: "971eae060595416283eaac4ad54cbbda"
-        next: 'js-qqesri.portal.item', // delegate to state js-qqportalitem to highlight the actual id
+        next: 'js-qqesri.portal.item' // delegate to state js-qqportalitem to highlight the actual id
       },
       {
         token: 'string',
         regex: /'(?=[0-9a-fA-F]{32}')/, // recognizes an id starting w/ single quote like:  '971eae060595416283eaac4ad54cbbda'
-        next: 'js-qesri.portal.item', // delegate to state js-qportalitem to highlight the actual id
+        next: 'js-qesri.portal.item' // delegate to state js-qportalitem to highlight the actual id
       },
       {
         token: 'string',
         regex: /"(?=esri(\/\w+)+")/,
-        next: 'js-qqesri.mid',
+        next: 'js-qqesri.mid'
       },
       {
         token: 'string',
         regex: /'(?=esri(\/\w+)+')/,
-        next: 'js-qesri.mid',
+        next: 'js-qesri.mid'
       },
       {
         token: 'string',
         regex: /"(?=https?[^"]+")/,
-        next: 'js-qqesri.url',
+        next: 'js-qqesri.url'
       },
       {
         token: 'string',
         regex: /'(?=https?[^']+')/,
-        next: 'js-qesri.url',
+        next: 'js-qesri.url'
       }
     );
 
@@ -1663,35 +1663,35 @@ ace.define("ace/mode/html_esri_highlight_rules",["require","exports","module","a
         {
           token: 'esri-portal-item-id-href',
           regex: /[0-9a-fA-F]{32}/, // recognizes the id 971eae060595416283eaac4ad54cbbda
-          next: 'js-qqstring', // deletate to js-qstring to highlight the end quote
+          next: 'js-qqstring' // deletate to js-qstring to highlight the end quote
         }
       ],
       'js-qqesri.mid': [
         {
           token: 'esri-mid-href',
           regex: /esri(\/\w+)+/,
-          next: 'js-qqstring',
+          next: 'js-qqstring'
         }
       ],
       'js-qesri.portal.item': [
         {
           token: 'esri-portal-item-id-href',
           regex: /[0-9a-fA-F]{32}/, // recognizes the id 971eae060595416283eaac4ad54cbbda
-          next: 'js-qstring', // deletate to js-qstring to highlight the end quote
+          next: 'js-qstring' // deletate to js-qstring to highlight the end quote
         }
       ],
       'js-qesri.mid': [
         {
           token: 'esri-mid-href',
           regex: /esri(\/\w+)+/,
-          next: 'js-qstring',
+          next: 'js-qstring'
         }
       ],
       'js-qqesri.url': [
         {
           token: 'esri-url-href',
           regex: /https?:\/\/[-=*:+_.?&~{}@%#()\w\d/]+/,
-          next: 'js-qqstring',
+          next: 'js-qqstring'
         }
       ],
       'js-qesri.url': [
@@ -2535,8 +2535,7 @@ ace.define("ace/mode/html_esri",["require","exports","module","ace/lib/oop","ace
   var TextMode = require('./text').Mode;
   var JavaScriptMode = require('./javascript').Mode;
   var CssMode = require('./css').Mode;
-  var HtmlEsriHighlightRules = require('./html_esri_highlight_rules')
-    .HtmlEsriHighlightRules;
+  var HtmlEsriHighlightRules = require('./html_esri_highlight_rules').HtmlEsriHighlightRules;
   var XmlBehaviour = require('./behaviour/xml').XmlBehaviour;
   var HtmlFoldMode = require('./folding/html').FoldMode;
   var HtmlCompletions = require('./html_completions').HtmlCompletions;
@@ -2557,21 +2556,9 @@ ace.define("ace/mode/html_esri",["require","exports","module","ace/lib/oop","ace
     'param',
     'source',
     'track',
-    'wbr',
+    'wbr'
   ];
-  var optionalEndTags = [
-    'li',
-    'dt',
-    'dd',
-    'p',
-    'rt',
-    'rp',
-    'optgroup',
-    'option',
-    'colgroup',
-    'td',
-    'th',
-  ];
+  var optionalEndTags = ['li', 'dt', 'dd', 'p', 'rt', 'rp', 'optgroup', 'option', 'colgroup', 'td', 'th'];
 
   var Mode = function(options) {
     this.fragmentContext = options && options.fragmentContext;
@@ -2581,13 +2568,10 @@ ace.define("ace/mode/html_esri",["require","exports","module","ace/lib/oop","ace
 
     this.createModeDelegates({
       'js-': JavaScriptMode,
-      'css-': CssMode,
+      'css-': CssMode
     });
 
-    this.foldingRules = new HtmlFoldMode(
-      this.voidElements,
-      lang.arrayToMap(optionalEndTags),
-    );
+    this.foldingRules = new HtmlFoldMode(this.voidElements, lang.arrayToMap(optionalEndTags));
   };
   oop.inherits(Mode, TextMode);
 
@@ -2613,8 +2597,7 @@ ace.define("ace/mode/html_esri",["require","exports","module","ace/lib/oop","ace
       var worker = new WorkerClient(['ace'], 'ace/mode/html_worker', 'Worker');
       worker.attachToDocument(session.getDocument());
 
-      if (this.fragmentContext)
-        worker.call('setOptions', [{context: this.fragmentContext}]);
+      if (this.fragmentContext) worker.call('setOptions', [{context: this.fragmentContext}]);
 
       worker.on('error', function(e) {
         session.setAnnotations(e.data);
