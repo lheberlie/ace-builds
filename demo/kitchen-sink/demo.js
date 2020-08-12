@@ -918,6 +918,7 @@ var MockRenderer = exports.MockRenderer = function(visibleRowCount) {
     if (typeof document == "object") {
         this.container = document.createElement("div");
         this.scroller = document.createElement("div");
+        this.$gutter = document.createElement("div");
     }
     this.visibleRowCount = visibleRowCount || 20;
 
@@ -927,8 +928,6 @@ var MockRenderer = exports.MockRenderer = function(visibleRowCount) {
     };
 
     this.isMockRenderer = true;
-
-    this.$gutter = {};
 };
 
 
@@ -1357,13 +1356,13 @@ function toString(x) {
 }
 
 exports.getUI = function(container) {
-    return ["div", {},
+    return ["div", {role: "group", "aria-label": "Test"},
         " Test ", 
-        ["button", {onclick: exports.openLogView}, "O"],
+        ["button", {"aria-label": "Open Log View", onclick: exports.openLogView}, "O"],
         ["button", {onclick: exports.record}, "Record"],
         ["button", {onclick: exports.stop}, "Stop"],
         ["button", {onclick: exports.play}, "Play"],
-        ["button", {onclick: exports.closeLogView}, "X"],
+        ["button", {"aria-label": "Close Log View", onclick: exports.closeLogView}, "X"],
     ];
 };
 
@@ -1401,6 +1400,8 @@ exports.textInputDebugger = {
             if (ignoreEvents) return;
             var data = {
                 _: e.type, 
+                data: e.data,
+                inputType: e.inputType,
                 range: [text.selectionStart, text.selectionEnd], 
                 value: text.value, 
                 key: e.key && {
@@ -1531,22 +1532,23 @@ var supportedModes = {
     ABC:         ["abc"],
     ActionScript:["as"],
     ADA:         ["ada|adb"],
+    Alda:        ["alda"],
     Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
+    Apex:        ["apex|cls|trigger|tgr"],
+    AQL:         ["aql"],
     AsciiDoc:    ["asciidoc|adoc"],
     ASL:         ["dsl|asl"],
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
-    Apex:        ["apex|cls|trigger|tgr"],
-    AQL:         ["aql"],
     BatchFile:   ["bat|cmd"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search:    ["c9search_results"],
-    Crystal:     ["cr"],
     Cirru:       ["cirru|cr"],
     Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
     coffee:      ["coffee|cf|cson|^Cakefile"],
     ColdFusion:  ["cfm"],
+    Crystal:     ["cr"],
     CSharp:      ["cs"],
     Csound_Document: ["csd"],
     Csound_Orchestra: ["orc"],
@@ -1594,6 +1596,7 @@ var supportedModes = {
     Java:        ["java"],
     JavaScript:  ["js|jsm|jsx"],
     JSON:        ["json"],
+    JSON5:       ["json5"],
     JSONiq:      ["jq"],
     JSP:         ["jsp"],
     JSSM:        ["jssm|jssm_state"],
@@ -1615,30 +1618,34 @@ var supportedModes = {
     Mask:        ["mask"],
     MATLAB:      ["matlab"],
     Maze:        ["mz"],
+    MediaWiki:   ["wiki|mediawiki"],
     MEL:         ["mel"],
     MIXAL:       ["mixal"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
     Nginx:       ["nginx|conf"],
-    Nix:         ["nix"],
     Nim:         ["nim"],
+    Nix:         ["nix"],
     NSIS:        ["nsi|nsh"],
+    Nunjucks:    ["nunjucks|nunjs|nj|njk"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     Perl6:       ["p6|pl6|pm6"],
     pgSQL:       ["pgsql"],
-    PHP_Laravel_blade: ["blade.php"],
     PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
-    Puppet:      ["epp|pp"],
+    PHP_Laravel_blade: ["blade.php"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
+    Prisma:      ["prisma"],
     Prolog:      ["plg|prolog"],
     Properties:  ["properties"],
     Protobuf:    ["proto"],
+    Puppet:      ["epp|pp"],
     Python:      ["py"],
+    QML:         ["qml"],
     R:           ["r"],
     Razor:       ["cshtml|asp"],
     RDoc:        ["Rd"],
@@ -3237,7 +3244,7 @@ oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
     this.attach = function(editor) {
         var iSearch = this.$iSearch;
         HashHandler.call(this, exports.iSearchCommands, editor.commands.platform);
-        this.$commandExecHandler = editor.commands.addEventListener('exec', function(e) {
+        this.$commandExecHandler = editor.commands.on('exec', function(e) {
             if (!e.command.isIncrementalSearchCommand)
                 return iSearch.deactivate();
             e.stopPropagation();
@@ -3252,7 +3259,7 @@ oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
 
     this.detach = function(editor) {
         if (!this.$commandExecHandler) return;
-        editor.commands.removeEventListener('exec', this.$commandExecHandler);
+        editor.commands.off('exec', this.$commandExecHandler);
         delete this.$commandExecHandler;
     };
 
@@ -3261,7 +3268,7 @@ oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
         if (((hashId === 1/*ctrl*/ || hashId === 8/*command*/) && key === 'v')
          || (hashId === 1/*ctrl*/ && key === 'y')) return null;
         var cmd = handleKeyboard$super.call(this, data, hashId, key, keyCode);
-        if (cmd.command) { return cmd; }
+        if (cmd && cmd.command) { return cmd; }
         if (hashId == -1) {
             var extendCmd = this.commands.extendSearchTerm;
             if (extendCmd) { return {command: extendCmd, args: key}; }
@@ -3318,27 +3325,28 @@ function objectToRegExp(obj) {
 
 (function() {
 
-    this.activate = function(ed, backwards) {
-        this.$editor = ed;
-        this.$startPos = this.$currentPos = ed.getCursorPosition();
+    this.activate = function(editor, backwards) {
+        this.$editor = editor;
+        this.$startPos = this.$currentPos = editor.getCursorPosition();
         this.$options.needle = '';
         this.$options.backwards = backwards;
-        ed.keyBinding.addKeyboardHandler(this.$keyboardHandler);
-        this.$originalEditorOnPaste = ed.onPaste; ed.onPaste = this.onPaste.bind(this);
-        this.$mousedownHandler = ed.addEventListener('mousedown', this.onMouseDown.bind(this));
-        this.selectionFix(ed);
+        editor.keyBinding.addKeyboardHandler(this.$keyboardHandler);
+        this.$originalEditorOnPaste = editor.onPaste; 
+        editor.onPaste = this.onPaste.bind(this);
+        this.$mousedownHandler = editor.on('mousedown', this.onMouseDown.bind(this));
+        this.selectionFix(editor);
         this.statusMessage(true);
     };
 
     this.deactivate = function(reset) {
         this.cancelSearch(reset);
-        var ed = this.$editor;
-        ed.keyBinding.removeKeyboardHandler(this.$keyboardHandler);
+        var editor = this.$editor;
+        editor.keyBinding.removeKeyboardHandler(this.$keyboardHandler);
         if (this.$mousedownHandler) {
-            ed.removeEventListener('mousedown', this.$mousedownHandler);
+            editor.off('mousedown', this.$mousedownHandler);
             delete this.$mousedownHandler;
         }
-        ed.onPaste = this.$originalEditorOnPaste;
+        editor.onPaste = this.$originalEditorOnPaste;
         this.message('');
     };
 
@@ -3460,8 +3468,6 @@ function objectToRegExp(obj) {
         if (this.$editor.showCommandLine) {
             this.$editor.showCommandLine(msg);
             this.$editor.focus();
-        } else {
-            console.log(msg);
         }
     };
 
@@ -3970,7 +3976,7 @@ var themeData = [
     ["Solarized Light"],
     ["TextMate"       ],
     ["Tomorrow"       ],
-    ["XCode"          ],
+    ["Xcode"          ],
     ["Kuroir"],
     ["KatzenMilch"],
     ["SQL Server"           ,"sqlserver"               , "light"],
@@ -3987,6 +3993,7 @@ var themeData = [
     ["Merbivore Soft"       ,"merbivore_soft"          ,  "dark"],
     ["Mono Industrial"      ,"mono_industrial"         ,  "dark"],
     ["Monokai"              ,"monokai"                 ,  "dark"],
+    ["Nord Dark"            ,"nord_dark"               ,  "dark"],
     ["Pastel on dark"       ,"pastel_on_dark"          ,  "dark"],
     ["Solarized Dark"       ,"solarized_dark"          ,  "dark"],
     ["Terminal"             ,"terminal"                ,  "dark"],
@@ -4016,9 +4023,9 @@ exports.themes = themeData.map(function(data) {
 
 define("ace/ext/options",["require","exports","module","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/lib/oop","ace/config","ace/lib/event_emitter","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module) {
 "use strict";
-var overlayPage = require('./menu_tools/overlay_page').overlayPage;
 
- 
+require("./menu_tools/overlay_page");
+
 var dom = require("../lib/dom");
 var oop = require("../lib/oop");
 var config = require("../config");
@@ -4057,7 +4064,8 @@ var optionGroups = {
                 { caption : "Ace", value : null },
                 { caption : "Vim", value : "ace/keyboard/vim" },
                 { caption : "Emacs", value : "ace/keyboard/emacs" },
-                { caption : "Sublime", value : "ace/keyboard/sublime" }
+                { caption : "Sublime", value : "ace/keyboard/sublime" },
+                { caption : "VSCode", value : "ace/keyboard/vscode" }
             ]
         },
         "Font Size": {
@@ -4100,6 +4108,7 @@ var optionGroups = {
         "Soft Tabs": [{
             path: "useSoftTabs"
         }, {
+            ariaLabel: "Tab Size",
             path: "tabSize",
             type: "number",
             values: [2, 3, 4, 8, 16]
@@ -4121,6 +4130,12 @@ var optionGroups = {
         "Enable Behaviours": {
             path: "behavioursEnabled"
         },
+        "Wrap with quotes": {
+            path: "wrapBehavioursEnabled"
+        },
+        "Enable Auto Indent": {
+            path: "enableAutoIndent"
+        },
         "Full Line Selection": {
             type: "checkbox",
             values: "text|line",
@@ -4135,11 +4150,12 @@ var optionGroups = {
         "Show Indent Guides": {
             path: "displayIndentGuides"
         },
-        "Persistent Scrollbar": [{
+        "Persistent HScrollbar": {
             path: "hScrollBarAlwaysVisible"
-        }, {
+        },
+        "Persistent VScrollbar": {
             path: "vScrollBarAlwaysVisible"
-        }],
+        },
         "Animate scrolling": {
             path: "animatedScroll"
         },
@@ -4158,6 +4174,7 @@ var optionGroups = {
         "Show Print Margin": [{
             path: "showPrintMargin"
         }, {
+            ariaLabel: "Print Margin",
             type: "number",
             path: "printMarginColumn"
         }],
@@ -4220,10 +4237,10 @@ var OptionPanel = function(editor, element) {
     
     this.render = function() {
         this.container.innerHTML = "";
-        buildDom(["table", {id: "controls"}, 
+        buildDom(["table", {role: "presentation", id: "controls"}, 
             this.renderOptionGroup(optionGroups.Main),
             ["tr", null, ["td", {colspan: 2},
-                ["table", {id: "more-controls"}, 
+                ["table", {role: "presentation", id: "more-controls"}, 
                     this.renderOptionGroup(optionGroups.More)
                 ]
             ]],
@@ -4266,17 +4283,20 @@ var OptionPanel = function(editor, element) {
         }
         
         if (option.type == "buttonBar") {
-            control = ["div", option.items.map(function(item) {
+            control = ["div", {role: "group", "aria-labelledby": option.path + "-label"}, option.items.map(function(item) {
                 return ["button", { 
                     value: item.value, 
                     ace_selected_button: value == item.value, 
+                    'aria-pressed': value == item.value, 
                     onclick: function() {
                         self.setOption(option, item.value);
                         var nodes = this.parentNode.querySelectorAll("[ace_selected_button]");
                         for (var i = 0; i < nodes.length; i++) {
                             nodes[i].removeAttribute("ace_selected_button");
+                            nodes[i].setAttribute("aria-pressed", false);
                         }
                         this.setAttribute("ace_selected_button", true);
+                        this.setAttribute("aria-pressed", true);
                     } 
                 }, item.desc || item.caption || item.name];
             })];
@@ -4284,6 +4304,11 @@ var OptionPanel = function(editor, element) {
             control = ["input", {type: "number", value: value || option.defaultValue, style:"width:3em", oninput: function() {
                 self.setOption(option, parseInt(this.value));
             }}];
+            if (option.ariaLabel) {
+                control[1]["aria-label"] = option.ariaLabel;
+            } else {
+                control[1].id = key;
+            }
             if (option.defaults) {
                 control = [control, option.defaults.map(function(item) {
                     return ["button", {onclick: function() {
@@ -4327,11 +4352,13 @@ var OptionPanel = function(editor, element) {
     this.renderOption = function(key, option) {
         if (option.path && !option.onchange && !this.editor.$options[option.path])
             return;
-        this.options[option.path] = option;
-        var safeKey = "-" + option.path;
+        var path = Array.isArray(option) ? option[0].path : option.path;
+        this.options[path] = option;
+        var safeKey = "-" + path;
+        var safeId = path + "-label";
         var control = this.renderOptionControl(safeKey, option);
         return ["tr", {class: "ace_optionsMenuEntry"}, ["td",
-            ["label", {for: safeKey}, key]
+            ["label", {for: safeKey, id: safeId}, key]
         ], ["td", control]];
     };
     
@@ -4559,7 +4586,9 @@ var SnippetManager = function() {
                 {regex: "\\|" + escape("\\|") + "*\\|", onMatch: function(val, state, stack) {
                     var choices = val.slice(1, -1).replace(/\\[,|\\]|,/g, function(operator) {
                         return operator.length == 2 ? operator[1] : "\x00";
-                    }).split("\x00");
+                    }).split("\x00").map(function(value){
+                        return {value: value};
+                    });
                     stack[0].choices = choices;
                     return [choices[0]];
                 }, next: "start"},
@@ -5030,6 +5059,12 @@ var SnippetManager = function() {
             }
             snippetMap[scope].push(s);
 
+            if (s.prefix)
+                s.tabTrigger = s.prefix;
+
+            if (!s.content && s.body)
+                s.content = Array.isArray(s.body) ? s.body.join("\n") : s.body;
+
             if (s.tabTrigger && !s.trigger) {
                 if (!s.guard && /^\w/.test(s.tabTrigger))
                     s.guard = "\\b";
@@ -5046,10 +5081,13 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger);
         }
 
-        if (snippets && snippets.content)
-            addSnippet(snippets);
-        else if (Array.isArray(snippets))
+        if (Array.isArray(snippets)) {
             snippets.forEach(addSnippet);
+        } else {
+            Object.keys(snippets).forEach(function(key) {
+                addSnippet(snippets[key]);
+            });
+        }
         
         this._signal("registerSnippets", {scope: scope});
     };
@@ -5099,7 +5137,7 @@ var SnippetManager = function() {
                     snippet.tabTrigger = val.match(/^\S*/)[0];
                     if (!snippet.name)
                         snippet.name = val;
-                } else {
+                } else if (key) {
                     snippet[key] = val;
                 }
             }
@@ -5162,15 +5200,16 @@ var TabstopManager = function(editor) {
 
     this.onChange = function(delta) {
         var isRemove = delta.action[0] == "r";
-        var parents = this.selectedTabstop && this.selectedTabstop.parents || {};
+        var selectedTabstop = this.selectedTabstop || {};
+        var parents = selectedTabstop.parents || {};
         var tabstops = (this.tabstops || []).slice();
         for (var i = 0; i < tabstops.length; i++) {
             var ts = tabstops[i];
-            var active = ts == this.selectedTabstop || parents[ts.index];
+            var active = ts == selectedTabstop || parents[ts.index];
             ts.rangeList.$bias = active ? 0 : 1;
             
-            if (delta.action == "remove" && ts !== this.selectedTabstop) {
-                var parentActive = ts.parents && ts.parents[this.selectedTabstop.index];
+            if (delta.action == "remove" && ts !== selectedTabstop) {
+                var parentActive = ts.parents && ts.parents[selectedTabstop.index];
                 var startIndex = ts.rangeList.pointIndex(delta.start, parentActive);
                 startIndex = startIndex < 0 ? -startIndex - 1 : startIndex + 1;
                 var endIndex = ts.rangeList.pointIndex(delta.end, parentActive);
@@ -5247,18 +5286,17 @@ var TabstopManager = function(editor) {
         
         this.selectedTabstop = ts;
         var range = ts.firstNonLinked || ts;
+        if (ts.choices) range.cursor = range.start;
         if (!this.editor.inVirtualSelectionMode) {
             var sel = this.editor.multiSelect;
-            sel.toSingleRange(range.clone());
+            sel.toSingleRange(range);
             for (var i = 0; i < ts.length; i++) {
                 if (ts.hasLinkedRanges && ts[i].linked)
                     continue;
                 sel.addRange(ts[i].clone(), true);
             }
-            if (sel.ranges[0])
-                sel.addRange(sel.ranges[0].clone());
         } else {
-            this.editor.selection.setRange(range);
+            this.editor.selection.fromOrientedRange(range);
         }
         
         this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
@@ -5283,8 +5321,6 @@ var TabstopManager = function(editor) {
         var ranges = this.ranges;
         tabstops.forEach(function(ts, index) {
             var dest = this.$openTabstops[index] || ts;
-            ts.rangeList = new RangeList();
-            ts.rangeList.$bias = 0;
             
             for (var i = 0; i < ts.length; i++) {
                 var p = ts[i];
@@ -5294,7 +5330,6 @@ var TabstopManager = function(editor) {
                 range.original = p;
                 range.tabstop = dest;
                 ranges.push(range);
-                ts.rangeList.ranges.push(range);
                 if (dest != ts)
                     dest.unshift(range);
                 else
@@ -5312,6 +5347,9 @@ var TabstopManager = function(editor) {
                 this.$openTabstops[index] = dest;
             }
             this.addTabstopMarkers(dest);
+            dest.rangeList = dest.rangeList || new RangeList();
+            dest.rangeList.$bias = 0;
+            dest.rangeList.addList(dest);
         }, this);
         
         if (arg.length > 2) {
@@ -5354,21 +5392,18 @@ var TabstopManager = function(editor) {
 
     this.keyboardHandler = new HashHandler();
     this.keyboardHandler.bindKeys({
-        "Tab": function(ed) {
-            if (exports.snippetManager && exports.snippetManager.expandWithTab(ed)) {
+        "Tab": function(editor) {
+            if (exports.snippetManager && exports.snippetManager.expandWithTab(editor))
                 return;
-            }
-
-            ed.tabstopManager.tabNext(1);
+            editor.tabstopManager.tabNext(1);
+            editor.renderer.scrollCursorIntoView();
         },
-        "Shift-Tab": function(ed) {
-            ed.tabstopManager.tabNext(-1);
+        "Shift-Tab": function(editor) {
+            editor.tabstopManager.tabNext(-1);
+            editor.renderer.scrollCursorIntoView();
         },
-        "Esc": function(ed) {
-            ed.tabstopManager.detach();
-        },
-        "Return": function(ed) {
-            return false;
+        "Esc": function(editor) {
+            editor.tabstopManager.detach();
         }
     });
 }).call(TabstopManager.prototype);
@@ -6087,7 +6122,7 @@ exports.parForEach = function(array, fn, callback) {
     }
 };
 
-var ID_REGEX = /[a-zA-Z_0-9\$\-\u00A2-\uFFFF]/;
+var ID_REGEX = /[a-zA-Z_0-9\$\-\u00A2-\u2000\u2070-\uFFFF]/;
 
 exports.retrievePrecedingIdentifier = function(text, pos, regex) {
     regex = regex || ID_REGEX;
@@ -6210,6 +6245,7 @@ var Autocomplete = function() {
         } else if (keepPopupPosition && !prefix) {
             this.detach();
         }
+        this.changeTimer.cancel();
     };
 
     this.detach = function() {
@@ -6272,13 +6308,15 @@ var Autocomplete = function() {
         if (!data)
             return false;
 
+        var completions = this.completions;
+        this.editor.startOperation({command: {name: "insertMatch"}});
         if (data.completer && data.completer.insertMatch) {
             data.completer.insertMatch(this.editor, data);
         } else {
-            if (this.completions.filterText) {
+            if (completions.filterText) {
                 var ranges = this.editor.selection.getAllRanges();
                 for (var i = 0, range; range = ranges[i]; i++) {
-                    range.start.column -= this.completions.filterText.length;
+                    range.start.column -= completions.filterText.length;
                     this.editor.session.remove(range);
                 }
             }
@@ -6287,7 +6325,9 @@ var Autocomplete = function() {
             else
                 this.editor.execCommand("insertstring", data.value || data);
         }
-        this.detach();
+        if (this.completions == completions)
+            this.detach();
+        this.editor.endOperation();
     };
 
 
@@ -6766,31 +6806,33 @@ var onChangeMode = function(e, editor) {
 };
 
 var loadSnippetsForMode = function(mode) {
-    var id = mode.$id;
+    if (typeof mode == "string")
+        mode = config.$modes[mode];
+    if (!mode)
+        return;
     if (!snippetManager.files)
         snippetManager.files = {};
-    loadSnippetFile(id);
+    
+    loadSnippetFile(mode.$id, mode.snippetFileId);
     if (mode.modes)
         mode.modes.forEach(loadSnippetsForMode);
 };
 
-var loadSnippetFile = function(id) {
-    if (!id || snippetManager.files[id])
+var loadSnippetFile = function(id, snippetFilePath) {
+    if (!snippetFilePath || !id || snippetManager.files[id])
         return;
-    var snippetFilePath = id.replace("mode", "snippets");
     snippetManager.files[id] = {};
     config.loadModule(snippetFilePath, function(m) {
-        if (m) {
-            snippetManager.files[id] = m;
-            if (!m.snippets && m.snippetText)
-                m.snippets = snippetManager.parseSnippetFile(m.snippetText);
-            snippetManager.register(m.snippets || [], m.scope);
-            if (m.includeScopes) {
-                snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
-                m.includeScopes.forEach(function(x) {
-                    loadSnippetFile("ace/mode/" + x);
-                });
-            }
+        if (!m) return;
+        snippetManager.files[id] = m;
+        if (!m.snippets && m.snippetText)
+            m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+        snippetManager.register(m.snippets || [], m.scope);
+        if (m.includeScopes) {
+            snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
+            m.includeScopes.forEach(function(x) {
+                loadSnippetsForMode("ace/mode/" + x);
+            });
         }
     });
 };
@@ -6899,9 +6941,9 @@ exports.beautify = function(session) {
 
     var trimNext = function() {
         if (nextToken && nextToken.value && nextToken.type !== 'string.regexp')
-            nextToken.value = nextToken.value.trim();
+            nextToken.value = nextToken.value.replace(/^\s*/, "");
     };
-
+    
     var trimLine = function() {
         code = code.replace(/ +$/, "");
     };
@@ -7120,6 +7162,9 @@ exports.beautify = function(session) {
                         }
                     }
                 }
+                
+                if (token.type == "text")
+                    value = value.replace(/\s+$/, " ");
                 if (spaceBefore && !breakBefore) {
                     trimLine();
                     if (code.substr(-1) !== "\n")
@@ -7387,13 +7432,22 @@ commands.addCommand({
         }
     }
 });
-var sidePanelContainer = document.getElementById("sidePanel");
-sidePanelContainer.onclick = function(e) {
+function handleToggleActivate(target) {
     if (dom.hasCssClass(sidePanelContainer, "closed"))
         onResize(null, false);
-    else if (dom.hasCssClass(e.target, "toggleButton"))
+    else if (dom.hasCssClass(target, "toggleButton"))
         onResize(null, true);
-}
+};
+var sidePanelContainer = document.getElementById("sidePanel");
+sidePanelContainer.onclick = function(e) {
+    handleToggleActivate(e.target);
+};
+var optionToggle = document.getElementById("optionToggle");
+optionToggle.onkeydown = function(e) {
+    if (e.code === "Space" || e.code === "Enter") {
+        handleToggleActivate(e.target);
+    }
+};
 var consoleHeight = 20;
 function onResize(e, closeSidePanel) {
     var left = 280;
@@ -7401,8 +7455,11 @@ function onResize(e, closeSidePanel) {
     var height = document.documentElement.clientHeight;
     if (closeSidePanel == null)
         closeSidePanel = width < 2 * left;
-    if (closeSidePanel)
+    if (closeSidePanel) {
         left = 20;
+        document.getElementById("optionToggle").setAttribute("aria-label", "Show Options");
+    } else
+        document.getElementById("optionToggle").setAttribute("aria-label", "Hide Options");
     width -= left;
     container.style.width = width + "px";
     container.style.height = height - consoleHeight + "px";
