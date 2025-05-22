@@ -44,7 +44,7 @@ oop.inherits(TokenTooltip, Tooltip);
                 state: session.bgTokenizer.getState(0)
             };
         }
-        if (!token || !/esri[-\w]+href/.test(token.type)) {
+        if (!token || !/(esri[-\w]+href|(arcgis|calcite)-web-component|esri-guid)/.test(token.type)) {
             this.editor.renderer.setCursorStyle("");
             session.removeMarker(this.marker);
             this.hide();
@@ -59,11 +59,14 @@ oop.inherits(TokenTooltip, Tooltip);
         if (token.stateTransitions)
             tokenText += "\n  " + token.stateTransitions.join("\n  ");
         var tooltipMessage = " see item";
-        if (/esri-mid-href/i.test(token.type)) {
-            tooltipMessage = " see API Reference";
+        if (/esri-(mid|core)-href/i.test(token.type)) {
+            tooltipMessage = " see Core API Reference";
         }
-        else if (/esri-url-href/i.test(token.type)) {
+        else if (/esri-url-href|esri-guid/i.test(token.type)) {
             tooltipMessage = " open link";
+        }
+        else if (/(arcgis|calcite)-web-component/i.test(token.type)) {
+            tooltipMessage = " see Component Reference";
         }
         if (/mac/i.test(navigator.userAgent)) {
             tokenText = "Cmd + click to" + tooltipMessage;

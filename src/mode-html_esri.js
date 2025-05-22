@@ -1632,6 +1632,14 @@ var HtmlEsriHighlightRules = function () {
         next: "js-qesri.mid"
     }, {
         token: "string",
+        regex: /"(?=@arcgis(\/\w+)+\.js")/,
+        next: "js-qqesri.core"
+    }, {
+        token: "string",
+        regex: /'(?=@arcgis(\/\w+)+\.js')/,
+        next: "js-qesri.core"
+    }, {
+        token: "string",
         regex: /"(?=https?[^"]+")/,
         next: "js-qqesri.url"
     }, {
@@ -1659,6 +1667,13 @@ var HtmlEsriHighlightRules = function () {
                 next: "js-qqstring"
             }
         ],
+        "js-qqesri.core": [
+            {
+                token: "esri-core-href",
+                regex: /@arcgis(\/\w+)+\.js/,
+                next: "js-qqstring"
+            }
+        ],
         "js-qesri.portal.item": [
             {
                 token: "esri-portal-item-id-href",
@@ -1670,6 +1685,13 @@ var HtmlEsriHighlightRules = function () {
             {
                 token: "esri-mid-href",
                 regex: /esri(\/\w+)+/,
+                next: "js-qstring"
+            }
+        ],
+        "js-qesri.core": [
+            {
+                token: "esri-core-href",
+                regex: /@arcgis(\/\w+)+\.js/,
                 next: "js-qstring"
             }
         ],
@@ -1686,6 +1708,35 @@ var HtmlEsriHighlightRules = function () {
                 regex: /https?:\/\/[-=*:+_.?&~{}@%#()\w\d/]+/,
                 next: "js-qstring"
             }
+        ],
+    });
+    this.$rules["tag"].unshift({
+        token: function (start, tag) {
+            return ["meta.tag.punctuation.arcgis-web-component." + (start == "<" ? "" : "end-") + "tag-open.xml",
+                "meta.tag.arcgis-web-component.tag-name.xml"];
+        },
+        regex: "(</?)(arcgis-[-_a-zA-Z0-9:.]+)",
+        next: "tag_stuff"
+    }, {
+        token: function (start, tag) {
+            return ["meta.tag.punctuation.calcite-web-component." + (start == "<" ? "" : "end-") + "tag-open.xml",
+                "meta.tag.calcite-web-component.tag-name.xml"];
+        },
+        regex: "(</?)(calcite-[-_a-zA-Z0-9:.]+)",
+        next: "tag_stuff"
+    });
+    this.$rules["tag_stuff"].push({
+        token: "meta.tag.punctuation.arcgis-web-component.tag-close.xml", regex: "/?>", next: "start"
+    }, {
+        token: "meta.tag.punctuation.calcite-web-component.tag-close.xml", regex: "/?>", next: "start"
+    });
+    this.$rules["attribute_value"].unshift({
+        token: "string.esri-guid-attribute-value.xml",
+        regex: /["'][0-9a-fA-F]{32}/,
+        push: [
+            { token: "string.attribute-value.xml", regex: /["']/, next: "pop" },
+            { include: "attr_reference" },
+            { defaultToken: "string.attribute-value.xml" }
         ]
     });
     if (this.constructor === HtmlEsriHighlightRules)
